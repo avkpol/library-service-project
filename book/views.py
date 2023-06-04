@@ -1,15 +1,26 @@
-from django.shortcuts import render
-from rest_framework import viewsets
-from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
+from rest_framework import permissions, viewsets
 
-from .models import Book
-from .serializers import BookSerializer
+from book.models import Book
+from book.serializers import BookSerializer
 
 class BookViewSet(viewsets.ModelViewSet):
     queryset = Book.objects.all()
     serializer_class = BookSerializer
+    permission_classes_by_action = {
+        'list': [permissions.AllowAny],
+        'create': [permissions.IsAdminUser],
+        'retrieve': [permissions.IsAdminUser],
+        'update': [permissions.IsAdminUser],
+        'partial_update': [permissions.IsAdminUser],
+        'destroy': [permissions.IsAdminUser],
+    }
 
+    def get_permissions(self):
+        try:
+            return [permission() for permission in self.permission_classes_by_action[self.action]]
+        except KeyError:
+            return [permission() for permission in self.permission_classes]
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -20,3 +31,4 @@ class BookViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save()
+
