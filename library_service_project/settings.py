@@ -38,7 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     "rest_framework",
-    "rest_framework_simplejwt"
+    "rest_framework_simplejwt",
     "book",
     "user",
 ]
@@ -131,4 +131,10 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
+}
+
+JWT_AUTH = {
+    'JWT_AUTH_HEADER_PREFIX': 'Bearer',
+    'JWT_AUTH_HEADER_TYPES': ('Bearer', 'JWT'),
+    'JWT_AUTH_HEADER_NAME': 'HTTP_X_ACCESS_TOKEN',
 }
