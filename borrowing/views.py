@@ -1,6 +1,8 @@
-from rest_framework import viewsets
+from rest_framework import viewsets, exceptions
 from rest_framework.decorators import action
 from rest_framework.response import Response
+
+from book.models import Book
 from borrowing.models import Borrowing
 from borrowing.serializers import BorrowingSerializer
 
@@ -12,8 +14,18 @@ class BorrowingViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        self.validate_inventory(serializer.validated_data['book_id'])
         borrowing = self.perform_create(serializer)
         return Response(BorrowingSerializer(borrowing).data)
+
+    def validate_inventory(self, book_id):
+        try:
+            book = Book.objects.get(id=book_id)
+            if book.inventory == 0:
+                raise exceptions.ValidationError("Book inventory is zero.")
+        except Book.DoesNotExist:
+            raise exceptions.ValidationError("Invalid book ID.")
+
 
     def perform_create(self, serializer):
         borrowing = serializer.save()
