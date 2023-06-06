@@ -1,22 +1,42 @@
+from django.contrib.auth.models import User
 from rest_framework_simplejwt.serializers import (
     TokenObtainPairSerializer, TokenRefreshSerializer
 )
 from rest_framework import serializers
 from .models import Customer
 
+class CustomerRegistrationSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(style={"input_type": "password"}, write_only=True)
+
+    class Meta:
+        model = User
+        fields = ['email', "username", 'password', 'first_name', 'last_name']
+
+    def create(self, validated_data):
+        user = User.objects.create_user(**validated_data)
+        return user
+
+
 class CustomerSerializer(serializers.ModelSerializer):
     password = serializers.CharField(style={"input_type": "password"}, write_only=True)
 
     class Meta:
         model = Customer
-        fields = ('id', 'email', 'first_name', 'last_name', 'password', 'is_staff')
-
+        fields = ('id', 'email', 'username', 'first_name', 'last_name', 'password', 'is_staff')
 
     def create(self, validated_data):
         password = validated_data.pop('password')
-        customer = Customer(**validated_data)
-        customer.set_password(password)
-        customer.save()
+        email = validated_data.pop('email')
+        username = validated_data.pop('username')
+
+        try:
+            customer = Customer.objects.get(username=username)
+            raise serializers.ValidationError('A customer with this username already exists.')
+        except Customer.DoesNotExist:
+            customer = Customer.objects.create_user(username, email=email, **validated_data, is_active=True)
+            customer.set_password(password)
+            customer.save()
+
         return customer
 
 

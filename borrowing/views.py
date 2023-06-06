@@ -26,12 +26,14 @@ class BorrowingViewSet(viewsets.ModelViewSet):
         except Book.DoesNotExist:
             raise exceptions.ValidationError("Invalid book ID.")
 
-
     def perform_create(self, serializer):
         borrowing = serializer.save()
-        # Decrease inventory count by 1 when a book is borrowed
-        book_id = borrowing.book_id
-        # Your code to decrease inventory count for the book goes here
+        book = borrowing.book
+        if book.inventory == 0:
+            raise exceptions.ValidationError("The book is not available in inventory.")
+        book.inventory -= 1
+        book.save()
+
         return borrowing
 
     @action(detail=False, methods=['get'])
@@ -47,10 +49,16 @@ class BorrowingViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def return_book(self, request, pk=None):
         borrowing = self.get_object()
+
+        if borrowing.actual_return_date is not None:
+            raise exceptions.ValidationError("This borrowing has already been returned.")
+
         borrowing.actual_return_date = request.data.get('actual_return_date')
         borrowing.save()
         # Increase inventory count by 1 when a book is returned
-        book_id = borrowing.book_id
-        # Your code to increase inventory count for the book goes here
+        book = borrowing.book
+        book.inventory += 1
+        book.save()
+
         serializer = BorrowingSerializer(borrowing)
         return Response(serializer.data)

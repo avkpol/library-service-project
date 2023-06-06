@@ -7,20 +7,20 @@ from book.serializers import BookSerializer
 class BookViewSet(viewsets.ModelViewSet):
     queryset = Book.objects.all()
     serializer_class = BookSerializer
-    permission_classes_by_action = {
-        'list': [permissions.AllowAny],
-        'create': [permissions.IsAdminUser],
-        'retrieve': [permissions.IsAdminUser],
-        'update': [permissions.IsAdminUser],
-        'partial_update': [permissions.IsAdminUser],
-        'destroy': [permissions.IsAdminUser],
-    }
+    # permission_classes_by_action = {
+    #     'list': [permissions.AllowAny],
+    #     'create': [permissions.IsAdminUser],
+    #     'retrieve': [permissions.IsAdminUser],
+    #     'update': [permissions.IsAdminUser],
+    #     'partial_update': [permissions.IsAdminUser],
+    #     'destroy': [permissions.IsAdminUser],
+    # }
 
-    def get_permissions(self):
-        try:
-            return [permission() for permission in self.permission_classes_by_action[self.action]]
-        except KeyError:
-            return [permission() for permission in self.permission_classes]
+    # def get_permissions(self):
+    #     try:
+    #         return [permission() for permission in self.permission_classes_by_action[self.action]]
+    #     except KeyError:
+    #         return [permission() for permission in self.permission_classes]
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
