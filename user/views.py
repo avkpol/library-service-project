@@ -1,7 +1,7 @@
 from django.contrib.auth import authenticate, login, logout, get_user_model
 from django.contrib.auth.models import User
 from rest_framework.exceptions import PermissionDenied
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework import status, viewsets, generics
@@ -22,10 +22,10 @@ class CustomerViewSet(viewsets.ModelViewSet):
     serializer_class = CustomerSerializer
 
     def get_permissions(self):
-        if self.action == 'list':
-            return []
+        if self.action == 'api/users/register':
+            return [AllowAny()]
         else:
-            return super().get_permissions()
+            return [IsAuthenticated()]
 
     @action(detail=False, methods=['post'])
     def token(self, request):
