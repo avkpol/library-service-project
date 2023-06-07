@@ -2,6 +2,7 @@ import stripe
 from django.http import JsonResponse
 from django.shortcuts import redirect
 from rest_framework.decorators import api_view
+from rest_framework.exceptions import ValidationError
 from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -10,7 +11,7 @@ from rest_framework.views import APIView
 from book.models import Book
 from borrowing.models import Borrowing
 from library_service_project import settings
-from payments.models import Payment
+from payments.models import Payment, PaymentStatus, PaymentType
 from payments.serializers import PaymentSerializer
 from rest_framework import viewsets, status
 
@@ -32,8 +33,13 @@ class CreateCheckoutSession(APIView):
         borrowing_id = dataDict['borrowing'][0]
         try:
             borrowing = get_object_or_404(Borrowing, pk=borrowing_id)
-            payment = Payment(borrowing=borrowing)
-            unit_amount = int(payment.money_to_pay*100)
+            payment = Payment(
+                borrowing=borrowing,
+                to_pay=price,
+                status=PaymentStatus.PENDING,
+                type=PaymentType.CARD
+            )
+            unit_amount = int(payment.money_to_pay * 100)
             print(unit_amount)
             checkout_session = stripe.checkout.Session.create(
                 line_items=[{
@@ -50,17 +56,20 @@ class CreateCheckoutSession(APIView):
                 success_url=REST_API_CHECKOUT_SUCCESS_URL,
                 cancel_url=REST_API_CHECKOUT_CANCEL_URL,
             )
+            payment.session_url = checkout_session.url
+            payment.session_id = checkout_session.id
             payment.save()
             return redirect(checkout_session.url, code=303)
+        except ValidationError as e:
+            return Response({'error': str(e)}, status=400)
         except Exception as e:
             print(e)
-            return e
-            # return JsonResponse({'error': str(e)}, status=500)
+            return Response({'error': 'An error occurred'}, status=500)
 
 
 class PaymentListView(APIView):
     def get(self, request):
-        payments = Payment.objects.filter(status=True)
+        payments = Payment.objects.all()
         serializer = PaymentSerializer(payments, many=True)
         return Response(serializer.data)
 

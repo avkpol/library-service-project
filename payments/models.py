@@ -7,20 +7,21 @@ from book.models import Book
 from borrowing.models import Borrowing
 
 
-class PaymentStatus(Enum):
-    PENDING = 'PENDING'
-    PAID = 'PAID'
+class PaymentStatus(models.TextChoices):
+    PENDING = 'PENDING', 'Pending'
+    COMPLETED = 'COMPLETED', 'Completed'
+    CANCELED = 'CANCELED', 'Canceled'
 
-class PaymentType(Enum):
-    PAYMENT = 'PAYMENT'
-    FINE = 'FINE'
+class PaymentType(models.TextChoices):
+    CARD = 'CARD', 'Card'
+    CASH = 'CASH', 'Cash'
 
 class Payment(models.Model):
-    status = models.CharField(max_length=10, choices=[(status.value, status.name) for status in PaymentStatus])
-    type = models.CharField(max_length=10, choices=[(type.value, type.name) for type in PaymentType])
+    status = models.CharField(max_length=10, choices=PaymentStatus.choices, default=PaymentStatus.PENDING)
+    type = models.CharField(max_length=10, choices=PaymentType.choices)
     borrowing = models.OneToOneField(Borrowing, null=True, on_delete=models.CASCADE)
-    session_url = models.URLField()
-    session_id = models.CharField(max_length=255)
+    session_url = models.URLField(null=True, blank=True)
+    session_id = models.CharField(max_length=255, null=True, blank=True)
     to_pay = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
 
 
