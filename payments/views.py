@@ -1,19 +1,19 @@
 import stripe
 from django.http import JsonResponse
 from django.shortcuts import redirect
-from rest_framework.decorators import api_view
+
 from rest_framework.exceptions import ValidationError
-from rest_framework.generics import get_object_or_404
+from rest_framework.generics import get_object_or_404, RetrieveAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from book.models import Book
+
 from borrowing.models import Borrowing
 from library_service_project import settings
 from payments.models import Payment, PaymentStatus, PaymentType
 from payments.serializers import PaymentSerializer
-from rest_framework import viewsets, status
+
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
 webhook_secret = settings.STRIPE_WEBHOOK_SECRET
@@ -26,6 +26,7 @@ REST_API_CHECKOUT_CANCEL_URL = settings.CHECKOUT_CANCEL_URL
 class CreateCheckoutSession(APIView):
     queryset = Payment.objects.all()
     serializer_class = PaymentSerializer
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
         dataDict = dict(request.data)
@@ -68,16 +69,24 @@ class CreateCheckoutSession(APIView):
 
 
 class PaymentListView(APIView):
+    permission_classes = [IsAuthenticated]
+
     def get(self, request):
         payments = Payment.objects.all()
         serializer = PaymentSerializer(payments, many=True)
         return Response(serializer.data)
+
+class PaymentDetailView(RetrieveAPIView):
+    queryset = Payment.objects.all()
+    serializer_class = PaymentSerializer
+    permission_classes = [IsAuthenticated]
 
 
 
 class WebHook(APIView):
     queryset = Payment.objects.all()
     serializer_class = PaymentSerializer
+
 
     def post(self , request):
         event = None
