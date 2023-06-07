@@ -7,3 +7,15 @@ class BorrowingSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
+class BorrowingReturnSerializer(serializers.ModelSerializer):
+    # actual_return_date = serializers.DateField()
+
+    class Meta:
+        model = Borrowing
+        fields = ('actual_return_date',)
+        read_only_fields = (
+            "expected_return_date",
+            "borrow_date",
+
+        )
+

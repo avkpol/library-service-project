@@ -1,25 +1,23 @@
-from django.contrib.auth.decorators import permission_required
 from django.db import transaction
-from django.db.models import Q
-from rest_framework import viewsets, exceptions, status, request
+
+from rest_framework import viewsets, exceptions, status
 from rest_framework.decorators import action
-from rest_framework.exceptions import ValidationError
 from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
-from rest_framework_simplejwt.authentication import JWTAuthentication
 
 from book.models import Book
 from borrowing.models import Borrowing
-from borrowing.serializers import BorrowingSerializer
-from user.models import Customer
+from borrowing.serializers import (
+    BorrowingSerializer,
+    BorrowingReturnSerializer
+)
 
 
 class BorrowingViewSet(viewsets.ModelViewSet):
     queryset = Borrowing.objects.all()
     serializer_class = BorrowingSerializer
-    # authentication_classes = (JWTAuthentication,)
-    # permission_classes = (IsAuthenticated,)
+
 
     def get_permissions(self):
         if self.action == 'filter_by_user':
@@ -28,6 +26,7 @@ class BorrowingViewSet(viewsets.ModelViewSet):
             permission_classes = [IsAdminUser]
 
         return [permission() for permission in permission_classes]
+
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -55,6 +54,7 @@ class BorrowingViewSet(viewsets.ModelViewSet):
         borrowing = self.perform_create(serializer, book_id)
         return Response(BorrowingSerializer(borrowing).data)
 
+
     def validate_inventory(self, book_id):
         try:
             book = Book.objects.get(id=book_id)
@@ -62,6 +62,7 @@ class BorrowingViewSet(viewsets.ModelViewSet):
                 raise exceptions.ValidationError("Book inventory is zero.")
         except Book.DoesNotExist:
             raise exceptions.ValidationError("Invalid book ID.")
+
 
     def perform_create(self, serializer, book_id):
         borrowing = serializer.save()
@@ -102,6 +103,7 @@ class BorrowingViewSet(viewsets.ModelViewSet):
         serializer = BorrowingSerializer(borrowings, many=True)
         return Response(serializer.data)
 
+
     @action(detail=True, methods=['post'], url_path='return')
     def return_book(self, request, pk=None):
         borrowing = self.get_object()
@@ -124,7 +126,7 @@ class BorrowingViewSet(viewsets.ModelViewSet):
         borrowing.book = book  # Assign the book to the borrowing object
         borrowing.save()
 
-        serializer = BorrowingSerializer(borrowing)
+        serializer = BorrowingReturnSerializer(borrowing)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 

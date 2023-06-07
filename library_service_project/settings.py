@@ -43,8 +43,10 @@ INSTALLED_APPS = [
     "book",
     "user",
     "borrowing",
-    "payment",
+    "payments",
 ]
+
+
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -151,3 +153,11 @@ SIMPLE_JWT = {
     "REFRESH_TOKEN_LIFETIME": timedelta(days=10),
     "ROTATE_REFRESH_TOKENS": False,
 }
+
+#stripe
+STRIPE_SECRET_KEY = 'sk_test_51NG1reElCYAj8tIuRhSIGeecZIpQTtmQxQEelOgnaD0L4uW5MWgXv8TS3IB9MvcqWISgehQirGTTqBLjgcBcM5NM00XsTc5eGh'
+STRIPE_WEBHOOK_SECRET = "whsec_02638c3ac415d14247df7979419f17970055bcbe4204fc5f542e3d863bc64456"
+
+#REST api URL's
+CHECKOUT_SUCCESS_URL = 'http://localhost:8000/payments/success/'
+CHECKOUT_CANCEL_URL = 'http://localhost:8000/payments/cancel/'

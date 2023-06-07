@@ -22,11 +22,6 @@ class Payment(models.Model):
     session_url = models.URLField()
     session_id = models.CharField(max_length=255)
 
-    def __str__(self):
-        return f"Payment #{self.pk}"
-
-    def get_absolute_url(self):
-        return reverse('payment-detail', args=[str(self.pk)])
 
     @property
     def money_to_pay(self):
@@ -35,4 +30,10 @@ class Payment(models.Model):
         total_price = book.daily_fee * borrowing.duration_in_days()
 
         return total_price
+
+    def __str__(self):
+        return f"Payment #{self.pk}"
+
+    def get_absolute_url(self):
+        return reverse('payment-detail', args=[str(self.pk)])
 
