@@ -7,7 +7,7 @@ class BorrowingSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-class BorrowingReturnSerializer(serializers.ModelSerializer):
+class BorrowingReturnSerializer(serializers.Serializer):
     # actual_return_date = serializers.DateField()
 
     class Meta:

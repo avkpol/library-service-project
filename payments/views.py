@@ -2,6 +2,7 @@ import stripe
 from django.http import JsonResponse
 from django.shortcuts import redirect
 from rest_framework.decorators import api_view
+from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -28,16 +29,18 @@ class CreateCheckoutSession(APIView):
     def post(self, request):
         dataDict = dict(request.data)
         price = dataDict['to_pay'][0]
-        book_id = dataDict['borrowing_id'][0]  # Assuming product_name contains the book_id
+        borrowing_id = dataDict['borrowing'][0]
         try:
-            payment = Payment()
-            unit_amount = payment.money_to_pay  # Use the instance to access the money_to_pay property
+            borrowing = get_object_or_404(Borrowing, pk=borrowing_id)
+            payment = Payment(borrowing=borrowing)
+            unit_amount = int(payment.money_to_pay*100)
+            print(unit_amount)
             checkout_session = stripe.checkout.Session.create(
                 line_items=[{
                     'price_data': {
                         'currency': 'usd',
                         'product_data': {
-                            'borrowing_id': str(book_id),  # Convert book_id to a string if needed
+                            'name': str(borrowing.book_id),
                         },
                         'unit_amount': unit_amount
                     },
@@ -47,10 +50,20 @@ class CreateCheckoutSession(APIView):
                 success_url=REST_API_CHECKOUT_SUCCESS_URL,
                 cancel_url=REST_API_CHECKOUT_CANCEL_URL,
             )
+            payment.save()
             return redirect(checkout_session.url, code=303)
         except Exception as e:
             print(e)
             return e
+            # return JsonResponse({'error': str(e)}, status=500)
+
+
+class PaymentListView(APIView):
+    def get(self, request):
+        payments = Payment.objects.filter(status=True)
+        serializer = PaymentSerializer(payments, many=True)
+        return Response(serializer.data)
+
 
 
 class WebHook(APIView):
