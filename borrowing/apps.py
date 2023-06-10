@@ -6,4 +6,4 @@ class BorrowingConfig(AppConfig):
     name = 'borrowing'
 
     def ready(self):
-        import borrowing.signals
+        pass

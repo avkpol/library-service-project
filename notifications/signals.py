@@ -17,5 +17,4 @@ def send_borrowing_notification(sender, instance, created, **kwargs):
             f"\nUser ID: {instance.user_id}"
             f"\nBook ID: {instance.book_id}"
         )
-        # send_telegram_message(chat_id, message)
         return json.dumps({'chat_id': chat_id, 'message': message})
