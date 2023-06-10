@@ -12,7 +12,7 @@ from borrowing.serializers import (
     BorrowingSerializer,
     BorrowingReturnSerializer
 )
-
+from notifications.telegram_helper import send_telegram_message
 
 class BorrowingViewSet(viewsets.ModelViewSet):
     queryset = Borrowing.objects.all()
@@ -52,6 +52,15 @@ class BorrowingViewSet(viewsets.ModelViewSet):
         book_id = serializer.validated_data['book_id']
         self.validate_inventory(book_id)
         borrowing = self.perform_create(serializer, book_id)
+
+        chat_id = 'YOUR_TELEGRAM_CHAT_ID'
+        message = (
+            f"New borrowing created!\nBorrowing ID: {borrowing.id}"
+            f"\nUser ID: {borrowing.user_id}"
+            f"\nBook ID: {borrowing.book_id}"
+        )
+        send_telegram_message(chat_id, message)
+
         return Response(BorrowingSerializer(borrowing).data)
 
 
