@@ -3,6 +3,8 @@
 *.iml
 .env
 .DS_Store
+virtual/
+virtenv/
 venv/
 .pytest_cache/
 **__pycache__/

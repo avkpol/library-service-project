@@ -68,6 +68,22 @@ class CreateCheckoutSession(APIView):
             return Response({'error': 'An error occurred'}, status=500)
 
 
+class CustomSuccessView(APIView):
+    def get(self, request):
+        session_id = request.query_params.get('session_id')
+        try:
+            payment = get_object_or_404(Payment, session_id=session_id)
+
+            payment_info = {
+                'amount_paid': payment.to_pay,
+                'payment_method': payment.type,
+            }
+            return Response(payment_info)
+        except Exception as e:
+            return Response({'error': str(e)}, status=400)
+
+
+
 class PaymentListView(APIView):
     permission_classes = [IsAuthenticated]
 

@@ -44,6 +44,8 @@ INSTALLED_APPS = [
     "user",
     "borrowing",
     "payments",
+    "telegram",
+
 ]
 
 
