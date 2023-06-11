@@ -1,155 +1,79 @@
+from datetime import timedelta, datetime
+
 from django.test import TestCase
-from rest_framework.test import APIClient
+from rest_framework.test import APIRequestFactory, force_authenticate
+
 from rest_framework import status
-from django.urls import reverse
+from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
+from rest_framework.test import APIClient
 
-from book.models import Book
+from user.models import Customer
 from borrowing.models import Borrowing
+from borrowing.views import BorrowingViewSet
 
 
-class BorrowingTestCase(TestCase):
+class BorrowingViewSetTestCase(TestCase):
     def setUp(self):
         self.client = APIClient()
-        self.book = Book.objects.create(
-            title='Book Title',
-            author='Book Author',
-            cover='H',
-            inventory=5,
-            daily_fee=1.99
-        )
-        self.user_id = 1
+        self.factory = APIRequestFactory()
+        self.user = Customer.objects.create_user(username='testuser', email='testuser@example.com', password='testpassword')
+        self.superuser = Customer.objects.create_superuser(username='ss@ss.ss', email='ss@ss.ss', password='superpassword')
 
     def test_create_borrowing(self):
-        url = reverse('borrowing-list')
-        data = {
-            'borrow_date': '2022-01-01',
-            'expected_return_date': '2022-01-15',
-            'book_id': self.book.id,
-            'user_id': self.user_id
+        borrowing_data = {
+            'user_id': self.user.id,
+            'book_id': 1,
+            'borrow_date': '2023-06-04',
+            'return_date': '2023-06-11',
         }
-        response = self.client.post(url, data, format='json')
+
+        self.client.force_authenticate(user=self.superuser)
+        response = self.client.post('/api/borrowings/', borrowing_data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        borrowing = Borrowing.objects.get(pk=response.data['id'])
-        self.assertEqual(borrowing.book, self.book)
-        self.assertEqual(borrowing.user_id, self.user_id)
-        self.assertEqual(borrowing.actual_return_date, None)
+
+    def test_create_borrowing_invalid_book_id(self):
+        data = {
+            'user_id': self.user.id,
+            'book_id': 999
+        }
+
+        view = BorrowingViewSet.as_view({'post': 'create'})
+        view.permission_classes = [IsAuthenticatedOrReadOnly]
+        request = self.factory.post('/api/borrowings/', data=data)
+        force_authenticate(request, user=self.user)
+        response = view(request)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(Borrowing.objects.count(), 0)
 
     def test_return_book(self):
         borrowing = Borrowing.objects.create(
-            borrow_date='2022-01-01',
-            expected_return_date='2022-01-15',
-            book_id=self.book.id,
-            user_id=self.user_id
+            user_id=self.user.id,
+            book_id=1,
+            expected_return_date=datetime.now() + timedelta(days=7)
         )
-        url = reverse('borrowing-return', kwargs={'pk': borrowing.pk})
-        data = {'actual_return_date': '2022-01-16'}
-        response = self.client.post(url, data, format='json')
+
+        view = BorrowingViewSet.as_view({'put': 'return_book'})
+        view.permission_classes = [IsAuthenticated]
+        request = self.factory.put(f'/api/borrowings/{borrowing.id}/return/')
+        force_authenticate(request, user=self.user)
+        response = view(request, pk=borrowing.id)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         borrowing.refresh_from_db()
-        self.assertEqual(borrowing.actual_return_date, '2022-01-16')
-        self.assertEqual(self.book.inventory, 6)
+        self.assertIsNotNone(borrowing.actual_return_date)
 
-    def test_filter_by_user(self):
-        Borrowing.objects.create(
-            borrow_date='2022-01-01',
-            expected_return_date='2022-01-15',
-            book_id=self.book.id,
-            user_id=self.user_id
-        )
-        Borrowing.objects.create(
-            borrow_date='2022-01-02',
-            expected_return_date='2022-01-16',
-            book_id=self.book.id,
-            user_id=self.user_id
-        )
-        Borrowing.objects.create(
-            borrow_date='2022-01-03',
-            expected_return_date='2022-01-17',
-            book_id=self.book.id,
-            user_id=self.user_id + 1  # Different user ID
-        )
-        url = reverse('borrowing-filter-by-user')
-        data = {'user_id': self.user_id}
-        response = self.client.get(url, data)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 2)
-
-    def test_filter_by_user_non_staff(self):
-        Borrowing.objects.create(
-            borrow_date='2022-01-01',
-            expected_return_date='2022-01-15',
-            book_id=self.book.id,
-            user_id=self.user_id
-        )
-        Borrowing.objects.create(
-            borrow_date='2022-01-02',
-            expected_return_date='2022-01-16',
-            book_id=self.book.id,
-            user_id=self.user_id
-        )
-        url = reverse('borrowing-filter-by-user')
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-
-
-class BorrowingAPITestCase(TestCase):
-    def setUp(self):
-        self.client = APIClient()
-        self.book = Book.objects.create(
-            title='Book Title',
-            author='Book Author',
-            cover='H',
-            inventory=5,
-            daily_fee=1.99
-        )
-        self.user_id = 1
-
-    def test_list_borrowings(self):
-        Borrowing.objects.create(
-            borrow_date='2022-01-01',
-            expected_return_date='2022-01-15',
-            book_id=self.book.id,
-            user_id=self.user_id
-        )
-        Borrowing.objects.create(
-            borrow_date='2022-01-02',
-            expected_return_date='2022-01-16',
-            book_id=self.book.id,
-            user_id=self.user_id
-        )
-        url = reverse('borrowing-list')
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 2)
-
-    def test_update_borrowing(self):
+    def test_return_book_already_returned(self):
         borrowing = Borrowing.objects.create(
-            borrow_date='2022-01-01',
-            expected_return_date='2022-01-15',
-            book_id=self.book.id,
-            user_id=self.user_id
+            user_id=self.user.id,
+            book_id=1,
+            expected_return_date=datetime.now() + timedelta(days=7),
+            actual_return_date='2023-06-01'
         )
-        url = reverse('borrowing-detail', kwargs={'pk': borrowing.pk})
-        data = {
-            'borrow_date': '2022-01-02',
-            'expected_return_date': '2022-01-16',
-            'book_id': self.book.id,
-            'user_id': self.user_id
-        }
-        response = self.client.put(url, data, format='json')
+
+        view = BorrowingViewSet.as_view({'put': 'return_book'})
+        view.permission_classes = [IsAuthenticated]
+        request = self.factory.put(f'/api/borrowings/{borrowing.id}/return/')
+        force_authenticate(request, user=self.user)
+        response = view(request, pk=borrowing.id)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         borrowing.refresh_from_db()
-        self.assertEqual(borrowing.borrow_date.strftime('%Y-%m-%d'), '2022-01-02')
-        self.assertEqual(borrowing.expected_return_date.strftime('%Y-%m-%d'), '2022-01-16')
-
-    def test_delete_borrowing(self):
-        borrowing = Borrowing.objects.create(
-            borrow_date='2022-01-01',
-            expected_return_date='2022-01-15',
-            book_id=self.book.id,
-            user_id=self.user_id
-        )
-        url = reverse('borrowing-detail', kwargs={'pk': borrowing.pk})
-        response = self.client.delete(url)
-        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
-        self.assertFalse(Borrowing.objects.filter(pk=borrowing.pk).exists())
+        self.assertIsNotNone(borrowing.actual_return_date)

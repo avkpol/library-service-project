@@ -7,11 +7,6 @@ router.register(r'books', BookViewSet, basename='book')
 
 urlpatterns = [
     path('', include(router.urls)),
-    # path(
-    #     "create/",
-    #     BookViewSet.as_view(actions={"book": "create"}),
-    #     name="create_book"
-    # ),
 ]
 
 app_name = "book"

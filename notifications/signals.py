@@ -21,8 +21,8 @@ def send_borrowing_notification(sender, instance, created, **kwargs):
 
 
 @receiver(post_save, sender=Borrowing)
-def send_return_notification(sender, instance, created, **kwargs):
-    if not created and instance.actual_return_date is not None:
+def send_return_borrowing_notification(sender, instance, update_fields=False, **kwargs):
+    if update_fields is not None and 'actual_return_date' in update_fields and instance.actual_return_date is not None:
         chat_id = os.getenv('TELEGRAM_CHAT_ID')
         message = (
             f"Book was returned!\nBorrowing ID: {instance.id}"

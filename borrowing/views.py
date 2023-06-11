@@ -1,4 +1,7 @@
 from django.db import transaction
+from django.dispatch import Signal, receiver
+
+
 
 from rest_framework import viewsets, exceptions, status
 from rest_framework.decorators import action
@@ -12,12 +15,12 @@ from borrowing.serializers import (
     BorrowingSerializer,
     BorrowingReturnSerializer
 )
+from notifications.signals import send_return_borrowing_notification
 from notifications.telegram_helper import send_telegram_message
 
 class BorrowingViewSet(viewsets.ModelViewSet):
     queryset = Borrowing.objects.all()
-    # serializer_class = BorrowingSerializer
-
+    permission_classes = [IsAuthenticated]
 
     def get_serializer_class(self):
         if self.action == 'return_book':
@@ -31,7 +34,6 @@ class BorrowingViewSet(viewsets.ModelViewSet):
             permission_classes = [IsAdminUser]
 
         return [permission() for permission in permission_classes]
-
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -117,7 +119,6 @@ class BorrowingViewSet(viewsets.ModelViewSet):
         serializer = BorrowingSerializer(borrowings, many=True)
         return Response(serializer.data)
 
-
     @action(detail=True, methods=['post'], url_path='return')
     def return_book(self, request, pk=None):
         borrowing = self.get_object()
@@ -130,19 +131,14 @@ class BorrowingViewSet(viewsets.ModelViewSet):
             raise exceptions.ValidationError("Please provide the actual return date.")
 
         borrowing.actual_return_date = actual_return_date
-        # borrowing.save()
+        borrowing.save()
 
         book = get_object_or_404(Book, id=borrowing.book_id)
         with transaction.atomic():
             book.inventory += 1
             book.save()
 
-        # borrowing.book = book  # Assign the book to the borrowing object
-        # borrowing.save()
+        send_return_borrowing_notification(sender=self.__class__, instance=borrowing)
 
         serializer = BorrowingReturnSerializer(borrowing)
         return Response(serializer.data, status=status.HTTP_200_OK)
-
-
-
-
