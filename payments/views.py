@@ -37,7 +37,7 @@ class CreateCheckoutSession(APIView):
             payment = Payment(
                 borrowing=borrowing,
                 to_pay=price,
-                status=PaymentStatus.PENDING,
+                status=PaymentStatus.COMPLETED,
                 type=PaymentType.CARD
             )
             unit_amount = int(payment.money_to_pay * 100)
@@ -63,9 +63,9 @@ class CreateCheckoutSession(APIView):
             return redirect(checkout_session.url, code=303)
         except ValidationError as e:
             return Response({'error': str(e)}, status=400)
-        except Exception as e:
-            print(e)
-            return Response({'error': 'An error occurred'}, status=500)
+        # except Exception as e:
+        #     print(e)
+        #     return Response({'error': 'An error occurred'}, status=500)
 
 
 class CustomSuccessView(APIView):

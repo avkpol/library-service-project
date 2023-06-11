@@ -16,8 +16,13 @@ from notifications.telegram_helper import send_telegram_message
 
 class BorrowingViewSet(viewsets.ModelViewSet):
     queryset = Borrowing.objects.all()
-    serializer_class = BorrowingSerializer
+    # serializer_class = BorrowingSerializer
 
+
+    def get_serializer_class(self):
+        if self.action == 'return_book':
+            return BorrowingReturnSerializer
+        return BorrowingSerializer
 
     def get_permissions(self):
         if self.action == 'filter_by_user':
@@ -125,15 +130,15 @@ class BorrowingViewSet(viewsets.ModelViewSet):
             raise exceptions.ValidationError("Please provide the actual return date.")
 
         borrowing.actual_return_date = actual_return_date
-        borrowing.save()
+        # borrowing.save()
 
         book = get_object_or_404(Book, id=borrowing.book_id)
         with transaction.atomic():
             book.inventory += 1
             book.save()
 
-        borrowing.book = book  # Assign the book to the borrowing object
-        borrowing.save()
+        # borrowing.book = book  # Assign the book to the borrowing object
+        # borrowing.save()
 
         serializer = BorrowingReturnSerializer(borrowing)
         return Response(serializer.data, status=status.HTTP_200_OK)

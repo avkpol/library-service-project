@@ -1,7 +1,6 @@
 from django.db import models
-from enum import Enum
-import math
 
+import math
 
 from book.models import Book
 from borrowing.models import Borrowing
