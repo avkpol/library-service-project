@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "rest_framework_simplejwt",
     "rest_framework_simplejwt.token_blacklist",
+    "drf_spectacular",
     "book",
     "user",
     "borrowing",
@@ -145,7 +146,8 @@ REST_FRAMEWORK = {
     # ],
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
-    )
+    ),
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
 JWT_AUTH = {
@@ -165,5 +167,18 @@ STRIPE_SECRET_KEY = 'sk_test_51NG1reElCYAj8tIuRhSIGeecZIpQTtmQxQEelOgnaD0L4uW5MW
 STRIPE_WEBHOOK_SECRET = "whsec_02638c3ac415d14247df7979419f17970055bcbe4204fc5f542e3d863bc64456"
 
 #REST api URL's
-CHECKOUT_SUCCESS_URL = 'http://localhost:8000/payments/success/'
-CHECKOUT_CANCEL_URL = 'http://localhost:8000/payments/cancel/'
+CHECKOUT_SUCCESS_URL = 'http://localhost:8000/api/payments/success/'
+CHECKOUT_CANCEL_URL = 'http://localhost:8000/api/payments/cancel/'
+
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Social media api",
+    "DESCRIPTION": "API for the Library Service ",
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+    "SWAGGER_UI_SETTINGS": {
+        "deepLinking": True,
+        "defaultModelRendering": "model",
+        "displayOperationId": True,
+    }
+}

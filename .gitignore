@@ -11,3 +11,4 @@ venv/
 *.pyc
 **db.sqlite3
 .flake8
+schema.yml
