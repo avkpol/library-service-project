@@ -10,7 +10,7 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
-            name="Book",
+            name="Borrowing",
             fields=[
                 (
                     "id",
@@ -21,16 +21,11 @@ class Migration(migrations.Migration):
                         verbose_name="ID",
                     ),
                 ),
-                ("title", models.CharField(max_length=255)),
-                ("author", models.CharField(max_length=255)),
-                (
-                    "cover",
-                    models.CharField(
-                        choices=[("H", "Hardcover"), ("S", "Softcover")], max_length=1
-                    ),
-                ),
-                ("inventory", models.PositiveIntegerField()),
-                ("daily_fee", models.DecimalField(decimal_places=2, max_digits=8)),
+                ("borrow_date", models.DateField(null=True)),
+                ("expected_return_date", models.DateField()),
+                ("actual_return_date", models.DateField(null=True)),
+                ("book_id", models.PositiveIntegerField()),
+                ("user_id", models.PositiveIntegerField()),
             ],
         ),
     ]

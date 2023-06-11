@@ -9,8 +9,13 @@ https://docs.djangoproject.com/en/4.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
-
+from datetime import timedelta
 from pathlib import Path
+from dotenv import load_dotenv, dotenv_values
+
+load_dotenv()
+
+config = dotenv_values(".env")
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -38,9 +43,17 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     "rest_framework",
+    "rest_framework_simplejwt",
+    "rest_framework_simplejwt.token_blacklist",
+    "drf_spectacular",
     "book",
     "user",
+    "borrowing",
+    "payments",
+
 ]
+
+
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -103,6 +116,7 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+AUTH_USER_MODEL = "user.Customer"
 
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
@@ -127,8 +141,44 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 REST_FRAMEWORK = {
-    'DEFAULT_RENDERER_CLASSES': [
-        'rest_framework.renderers.JSONRenderer',
-        'rest_framework.renderers.BrowsableAPIRenderer',
-    ],
+    # 'DEFAULT_PERMISSION_CLASSES': [
+    #     'rest_framework.permissions.IsAuthenticated',
+    # ],
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+}
+
+JWT_AUTH = {
+    'JWT_AUTH_HEADER_PREFIX': 'Bearer',
+    'JWT_AUTH_HEADER_TYPES': ('Bearer', 'JWT'),
+    'JWT_AUTH_HEADER_NAME': 'HTTP_X_ACCESS_TOKEN',
+}
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=2400),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=10),
+    "ROTATE_REFRESH_TOKENS": False,
+}
+
+#stripe
+STRIPE_SECRET_KEY = 'sk_test_51NG1reElCYAj8tIuRhSIGeecZIpQTtmQxQEelOgnaD0L4uW5MWgXv8TS3IB9MvcqWISgehQirGTTqBLjgcBcM5NM00XsTc5eGh'
+STRIPE_WEBHOOK_SECRET = "whsec_02638c3ac415d14247df7979419f17970055bcbe4204fc5f542e3d863bc64456"
+
+#REST api URL's
+CHECKOUT_SUCCESS_URL = 'http://localhost:8000/api/payments/success/'
+CHECKOUT_CANCEL_URL = 'http://localhost:8000/api/payments/cancel/'
+
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Social media api",
+    "DESCRIPTION": "API for the Library Service ",
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+    "SWAGGER_UI_SETTINGS": {
+        "deepLinking": True,
+        "defaultModelRendering": "model",
+        "displayOperationId": True,
+    }
 }
