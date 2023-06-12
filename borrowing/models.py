@@ -1,6 +1,5 @@
 from django.db import models
 
-from book.models import Book
 
 
 class Borrowing(models.Model):
@@ -12,3 +11,7 @@ class Borrowing(models.Model):
 
     def __str__(self):
         return f"Borrowing #{self.pk}"
+
+
+
+

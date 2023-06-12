@@ -89,6 +89,7 @@ change the default `Authorization` header for JWT authentication to for example 
 * Use `request.build_absolute_uri` & reverse
 * Provide request in context to serializer (only if needed)
 
+
 ### HOW TO RUN
 
 - Create venv: `python -m venv venv`
@@ -97,4 +98,3 @@ change the default `Authorization` header for JWT authentication to for example 
 - Run migrations: `python manage.py makemigrations`
                   `python manage.py migrate`
 - Run the app: `python manage.py runserver`
-
