@@ -20,7 +20,9 @@ def send_borrowing_notification(sender, instance, created, **kwargs):
 
 
 @receiver(post_save, sender=Borrowing)
-def send_return_borrowing_notification(sender, instance, update_fields=False, **kwargs):
+def send_return_borrowing_notification(
+    sender, instance, update_fields=False, **kwargs
+):
     if (
         update_fields is not None
         and "actual_return_date" in update_fields

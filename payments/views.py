@@ -4,10 +4,11 @@ from decimal import Decimal
 import stripe
 from django.http import JsonResponse
 from django.shortcuts import redirect
-from django.urls import reverse
 
 from rest_framework.exceptions import ValidationError
-from rest_framework.generics import get_object_or_404, RetrieveAPIView
+from rest_framework.generics import (
+    get_object_or_404, RetrieveAPIView
+)
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -77,6 +78,7 @@ class CreateCheckoutSession(APIView):
             # return redirect(checkout_session.url, code=303)
         except ValidationError as e:
             return Response({"error": str(e)}, status=400)
+
 
 
 class CustomSuccessView(APIView):

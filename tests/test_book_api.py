@@ -16,7 +16,7 @@ class BookViewSetTestCase(TestCase):
         self.client.force_authenticate(user=self.user)
 
     def test_list_books(self):
-        # Create some book instances for testing
+
         Book.objects.create(
             title="Book 1", author="Author 1", cover="H", inventory=10, daily_fee="9.99"
         )
@@ -26,8 +26,7 @@ class BookViewSetTestCase(TestCase):
 
         response = self.client.get(reverse("book:book-list"))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 2)  # Check if all books are returned
-
+        self.assertEqual(len(response.data), 2)
     def test_retrieve_book(self):
         book = Book.objects.create(
             title="Book 1", author="Author 1", cover="H", inventory=10, daily_fee="9.99"
@@ -37,7 +36,7 @@ class BookViewSetTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(
             response.data["title"], "Book 1"
-        )  # Check if the correct book is returned
+        )
 
     def test_create_book(self):
         book_data = {
@@ -50,7 +49,7 @@ class BookViewSetTestCase(TestCase):
 
         response = self.client.post(reverse("book:book-list"), book_data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(Book.objects.count(), 1)  # Check if the book is created
+        self.assertEqual(Book.objects.count(), 1)
 
     def test_update_book(self):
         book = Book.objects.create(
@@ -69,7 +68,7 @@ class BookViewSetTestCase(TestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         book.refresh_from_db()
-        self.assertEqual(book.title, "Updated Book")  # Check if the book is updated
+        self.assertEqual(book.title, "Updated Book")
 
     def test_delete_book(self):
         book = Book.objects.create(
@@ -80,4 +79,4 @@ class BookViewSetTestCase(TestCase):
             reverse("book:book-detail", kwargs={"pk": book.pk})
         )
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
-        self.assertEqual(Book.objects.count(), 0)  # Check if the book is deleted
+        self.assertEqual(Book.objects.count(), 0)
