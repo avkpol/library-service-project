@@ -15,6 +15,11 @@ from borrowing.serializers import (
 from notifications.signals import send_return_borrowing_notification
 from notifications.telegram_helper import send_telegram_message
 
+"""
+   for filtering a user by user_id and is_active use query 
+   "/api/borrowings/?user_id=<user_id>&is_active=<is_active>"
+   """
+
 
 class BorrowingViewSet(viewsets.ModelViewSet):
     queryset = Borrowing.objects.all()
@@ -87,11 +92,6 @@ class BorrowingViewSet(viewsets.ModelViewSet):
         borrowing.book = book
         borrowing.save()
         return borrowing
-
-    """
-    for filtering a user by user_id and is_active use query 
-    "/api/borrowings/?user_id=<user_id>&is_active=<is_active>"
-    """
 
     @action(detail=False, methods=["get"])
     def filter_by_user(self, request):

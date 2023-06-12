@@ -1,9 +1,9 @@
 import os
 from decimal import Decimal
-
 import stripe
+
 from django.http import JsonResponse
-from django.shortcuts import redirect
+from django.shortcuts import redirect, reverse
 
 from rest_framework.exceptions import ValidationError
 from rest_framework.generics import (
@@ -18,6 +18,7 @@ from library_service_project import settings
 from payments.models import Payment, PaymentStatus, PaymentType
 from payments.serializers import PaymentSerializer
 
+
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 webhook_secret = os.getenv("STRIPE_WEBHOOK_SECRET")
 
@@ -25,13 +26,11 @@ REST_API_CHECKOUT_SUCCESS_URL = settings.CHECKOUT_SUCCESS_URL
 REST_API_CHECKOUT_CANCEL_URL = settings.CHECKOUT_CANCEL_URL
 
 
-from django.shortcuts import reverse
-
 
 class CreateCheckoutSession(APIView):
     queryset = Payment.objects.all()
     serializer_class = PaymentSerializer
-    # permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
         dataDict = dict(request.data)
