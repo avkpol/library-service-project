@@ -1,6 +1,4 @@
 from django.db import transaction
-from django.dispatch import Signal, receiver
-
 
 from rest_framework import viewsets, exceptions, status
 from rest_framework.decorators import action
@@ -10,7 +8,10 @@ from rest_framework.response import Response
 
 from book.models import Book
 from borrowing.models import Borrowing
-from borrowing.serializers import BorrowingSerializer, BorrowingReturnSerializer
+from borrowing.serializers import (
+    BorrowingSerializer,
+    BorrowingReturnSerializer
+)
 from notifications.signals import send_return_borrowing_notification
 from notifications.telegram_helper import send_telegram_message
 
@@ -78,10 +79,12 @@ class BorrowingViewSet(viewsets.ModelViewSet):
         borrowing = serializer.save()
         book = get_object_or_404(Book, id=book_id)
         if book.inventory == 0:
-            raise exceptions.ValidationError("The book is not available in inventory.")
+            raise exceptions.ValidationError(
+                "The book is not available in inventory."
+            )
         book.inventory -= 1
         book.save()
-        borrowing.book = book  # Assign the book to the borrowing object
+        borrowing.book = book
         borrowing.save()
         return borrowing
 

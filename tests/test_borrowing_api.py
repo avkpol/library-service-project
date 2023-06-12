@@ -1,80 +1,114 @@
-from datetime import timedelta, datetime
+from user.views import User
 
-from django.test import TestCase
-from rest_framework.test import APIRequestFactory, force_authenticate
-
+from datetime import datetime, timedelta
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
-from rest_framework.test import APIClient
-
-from user.models import Customer
-from borrowing.models import Borrowing
-from borrowing.views import BorrowingViewSet
+from rest_framework.test import APITestCase
+from rest_framework.authtoken.models import Token
+from borrowing.models import Borrowing, Book
 
 
-class BorrowingViewSetTestCase(TestCase):
+class BorrowingViewSetTestCase(APITestCase):
     def setUp(self):
-        self.client = APIClient()
-        self.factory = APIRequestFactory()
-        self.user = Customer.objects.create_user(
-            username="testuser", email="testuser@example.com", password="testpassword"
+        self.user = User.objects.create_user(
+            email="test@example.com",
+            username="testuser",
+            password="testpassword",
+            first_name="John",
+            last_name="Doe",
         )
-        self.superuser = Customer.objects.create_superuser(
-            username="ss@ss.ss", email="ss@ss.ss", password="superpassword"
-        )
+        self.token = Token.objects.create(user=self.user)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Token {self.token.key}")
 
     def test_create_borrowing(self):
+        book = Book.objects.create(title="Test Book", inventory=5, daily_fee=10.0)
         borrowing_data = {
-            "user_id": self.user.id,
-            "book_id": 1,
             "borrow_date": "2023-06-04",
-            "return_date": "2023-06-11",
+            "expected_return_date": "2023-06-11",
+            "book_id": book.id,
+            "user_id": self.user.id,
         }
-
-        self.client.force_authenticate(user=self.superuser)
-        response = self.client.post("/api/borrowings/", borrowing_data)
+        response = self.client.post(
+            "api/borrowings/",
+            borrowing_data,
+            follow=True,
+        )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Borrowing.objects.count(), 1)
+        borrowing = Borrowing.objects.first()
+        self.assertEqual(borrowing.book_id, book.id)
+        self.assertEqual(borrowing.user_id, self.user.id)
 
     def test_create_borrowing_invalid_book_id(self):
-        data = {"user_id": self.user.id, "book_id": 999}
-
-        view = BorrowingViewSet.as_view({"post": "create"})
-        view.permission_classes = [IsAuthenticatedOrReadOnly]
-        request = self.factory.post("/api/borrowings/", data=data)
-        force_authenticate(request, user=self.user)
-        response = view(request)
+        borrowing_data = {
+            "book_id": 999,
+            "borrow_date": "2023-06-04",
+            "expected_return_date": "2023-06-11",
+        }
+        response = self.client.post(
+            "api/borrowings/",
+            borrowing_data,
+            follow=True,
+        )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(Borrowing.objects.count(), 0)
 
     def test_return_book(self):
+        book = Book.objects.create(title="Test Book", inventory=5, daily_fee=10.0)
         borrowing = Borrowing.objects.create(
             user_id=self.user.id,
-            book_id=1,
+            book_id=book.id,
             expected_return_date=datetime.now() + timedelta(days=7),
         )
-
-        view = BorrowingViewSet.as_view({"put": "return_book"})
-        view.permission_classes = [IsAuthenticated]
-        request = self.factory.put(f"/api/borrowings/{borrowing.id}/return/")
-        force_authenticate(request, user=self.user)
-        response = view(request, pk=borrowing.id)
+        return_data = {"actual_return_date": "2023-06-05"}
+        response = self.client.post(
+            f"api/borrowings/{book.id}/return/",
+            return_data,
+            kwargs={"pk": borrowing.id},
+            follow=True,
+        )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         borrowing.refresh_from_db()
         self.assertIsNotNone(borrowing.actual_return_date)
+        book.refresh_from_db()
+        self.assertEqual(book.inventory, 6)
 
     def test_return_book_already_returned(self):
+        book = Book.objects.create(title="Test Book", inventory=5, daily_fee=10.0)
         borrowing = Borrowing.objects.create(
             user_id=self.user.id,
-            book_id=1,
+            book_id=book.id,
             expected_return_date=datetime.now() + timedelta(days=7),
             actual_return_date="2023-06-01",
         )
-
-        view = BorrowingViewSet.as_view({"put": "return_book"})
-        view.permission_classes = [IsAuthenticated]
-        request = self.factory.put(f"/api/borrowings/{borrowing.id}/return/")
-        force_authenticate(request, user=self.user)
-        response = view(request, pk=borrowing.id)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        return_data = {"actual_return_date": "2023-06-05"}
+        response = self.client.post(
+            f"api/borrowings/{book.id}/return/",
+            return_data,
+            kwargs={"pk": borrowing.id},
+            follow=True,
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         borrowing.refresh_from_db()
-        self.assertIsNotNone(borrowing.actual_return_date)
+        self.assertEqual(borrowing.actual_return_date, "2023-06-01")
+        book.refresh_from_db()
+        self.assertEqual(book.inventory, 5)
+
+    def test_filter_by_user(self):
+        book = Book.objects.create(title="Test Book 1", inventory=5, daily_fee=10.0)
+
+        borrowing_data = {
+            "book_id": 999,
+            "borrow_date": "2023-06-04",
+            "expected_return_date": "2023-06-11",
+        }
+
+        response = self.client.get(
+            f"/api/borrowings/?user_id={self.user.id}&is_active={self.user.is_active}",
+            borrowing_data,
+            follow=True,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        borrowings = response.data
+        self.assertEqual(len(borrowings), 1)
+        self.assertEqual(borrowings[0]["user_id"], self.user.id)
+        self.assertEqual(borrowings[0]["book_id"], book.id)

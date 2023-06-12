@@ -1,13 +1,10 @@
 import os
-
 import requests as requests
 
 from notifications.signals import send_borrowing_notification
 
 
 message = send_borrowing_notification
-
-
 def send_telegram_message(chat_id, message):
     bot_token = os.getenv("TELEGRAM_BOT_TOKEN")
     telegram_api_url = f"https://api.telegram.org/bot{bot_token}/sendMessage"

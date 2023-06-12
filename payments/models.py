@@ -19,13 +19,23 @@ class PaymentType(models.TextChoices):
 
 class Payment(models.Model):
     status = models.CharField(
-        max_length=10, choices=PaymentStatus.choices, default=PaymentStatus.PENDING
+        max_length=10,
+        choices=PaymentStatus.choices,
+        default=PaymentStatus.PENDING
     )
-    type = models.CharField(max_length=10, choices=PaymentType.choices)
-    borrowing = models.OneToOneField(Borrowing, null=True, on_delete=models.CASCADE)
+    type = models.CharField(
+        max_length=10, choices=PaymentType.choices
+    )
+    borrowing = models.OneToOneField(
+        Borrowing, null=True, on_delete=models.CASCADE
+    )
     session_url = models.URLField(null=True, blank=True)
-    session_id = models.CharField(max_length=255, null=True, blank=True)
-    to_pay = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    session_id = models.CharField(
+        max_length=255, null=True, blank=True
+    )
+    to_pay = models.DecimalField(
+        max_digits=10, decimal_places=2, null=True, blank=True
+    )
 
     @property
     def money_to_pay(self):
@@ -43,6 +53,3 @@ class Payment(models.Model):
 
     def __str__(self):
         return f"Payment #{self.pk}"
-
-    # def get_absolute_url(self):
-    #     return reverse('payment-detail', args=[str(self.pk)])
