@@ -94,21 +94,6 @@ change the default `Authorization` header for JWT authentication to for example 
 * Add each-minute scheduled task for checking Stripe Session for expiration
 * If the session is expired - Payment should be also marked as EXPIRED (new status)
 * The user should be able to renew the Payment session (new endpoint)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ### HOW TO RUN
 
 - Create venv: `python -m venv venv`
@@ -117,4 +102,3 @@ change the default `Authorization` header for JWT authentication to for example 
 - Run migrations: `python manage.py makemigrations`
                   `python manage.py migrate`
 - Run the app: `python manage.py runserver`
-
