@@ -1,5 +1,6 @@
 import os
 
+
 import telegram
 from django.db.models.signals import post_save
 from django.dispatch import receiver
@@ -21,3 +22,4 @@ def send_borrowing_notification(sender, instance, created, **kwargs):
             f"User ID: {instance.user_id}\nBook ID: {instance.book_id}"
         )
         send_telegram_message(chat_id, message)
+

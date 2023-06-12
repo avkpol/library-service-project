@@ -1,21 +1,70 @@
-from rest_framework import viewsets, exceptions
+from django.db import transaction
+
+from rest_framework import viewsets, exceptions, status
 from rest_framework.decorators import action
+from rest_framework.generics import get_object_or_404
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 
 from book.models import Book
 from borrowing.models import Borrowing
-from borrowing.serializers import BorrowingSerializer
+from borrowing.serializers import (
+    BorrowingSerializer,
+    BorrowingReturnSerializer
+)
+from notifications.signals import send_return_borrowing_notification
+from notifications.telegram_helper import send_telegram_message
 
 
 class BorrowingViewSet(viewsets.ModelViewSet):
     queryset = Borrowing.objects.all()
-    serializer_class = BorrowingSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_serializer_class(self):
+        if self.action == "return_book":
+            return BorrowingReturnSerializer
+        return BorrowingSerializer
+
+    def get_permissions(self):
+        if self.action == "filter_by_user":
+            permission_classes = [IsAuthenticated]
+        else:
+            permission_classes = [IsAdminUser]
+
+        return [permission() for permission in permission_classes]
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        user_id = self.request.query_params.get("user_id")
+        is_active = self.request.query_params.get("is_active")
+
+        if user_id is not None:
+            queryset = queryset.filter(user_id=user_id)
+
+        if is_active is not None:
+            is_active = is_active.lower() == "true"
+            if is_active:
+                queryset = queryset.filter(actual_return_date__isnull=True)
+            else:
+                queryset = queryset.exclude(actual_return_date__isnull=True)
+
+        return queryset
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        self.validate_inventory(serializer.validated_data['book_id'])
-        borrowing = self.perform_create(serializer)
+        book_id = serializer.validated_data["book_id"]
+        self.validate_inventory(book_id)
+        borrowing = self.perform_create(serializer, book_id)
+
+        chat_id = "YOUR_TELEGRAM_CHAT_ID"
+        message = (
+            f"New borrowing created!\nBorrowing ID: {borrowing.id}"
+            f"\nUser ID: {borrowing.user_id}"
+            f"\nBook ID: {borrowing.book_id}"
+        )
+        send_telegram_message(chat_id, message)
+
         return Response(BorrowingSerializer(borrowing).data)
 
     def validate_inventory(self, book_id):
@@ -26,39 +75,72 @@ class BorrowingViewSet(viewsets.ModelViewSet):
         except Book.DoesNotExist:
             raise exceptions.ValidationError("Invalid book ID.")
 
-    def perform_create(self, serializer):
+    def perform_create(self, serializer, book_id):
         borrowing = serializer.save()
-        book = borrowing.book
+        book = get_object_or_404(Book, id=book_id)
         if book.inventory == 0:
-            raise exceptions.ValidationError("The book is not available in inventory.")
+            raise exceptions.ValidationError(
+                "The book is not available in inventory."
+            )
         book.inventory -= 1
         book.save()
-
+        borrowing.book = book
+        borrowing.save()
         return borrowing
 
-    @action(detail=False, methods=['get'])
+    """
+    for filtering a user by user_id and is_active use query 
+    "/api/borrowings/?user_id=<user_id>&is_active=<is_active>"
+    """
+
+    @action(detail=False, methods=["get"])
     def filter_by_user(self, request):
-        user_id = request.GET.get('user_id')
-        is_active = request.GET.get('is_active')
-        borrowings = Borrowing.objects.filter(user_id=user_id)
+        user_id = request.GET.get("user_id")
+        is_active = request.GET.get("is_active")
+
+        if request.user.is_staff:
+            borrowings = Borrowing.objects.all()
+        else:
+            borrowings = Borrowing.objects.filter(user_id=request.user.id)
+
+        if user_id:
+            if not request.user.is_staff and int(user_id) != request.user.id:
+                raise exceptions.PermissionDenied(
+                    "You can only access your own borrowings."
+                )
+            borrowings = borrowings.filter(user_id=user_id)
+
         if is_active is not None:
-            borrowings = borrowings.filter(actual_return_date__isnull=is_active.lower() == 'true')
+            if is_active.lower() == "true":
+                borrowings = borrowings.filter(actual_return_date__isnull=True)
+            else:
+                borrowings = borrowings.filter(actual_return_date__isnull=False)
+
         serializer = BorrowingSerializer(borrowings, many=True)
         return Response(serializer.data)
 
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=["post"], url_path="return")
     def return_book(self, request, pk=None):
         borrowing = self.get_object()
 
         if borrowing.actual_return_date is not None:
-            raise exceptions.ValidationError("This borrowing has already been returned.")
+            raise exceptions.ValidationError(
+                "This borrowing has already been returned."
+            )
 
-        borrowing.actual_return_date = request.data.get('actual_return_date')
+        actual_return_date = request.data.get("actual_return_date")
+        if not actual_return_date:
+            raise exceptions.ValidationError("Please provide the actual return date.")
+
+        borrowing.actual_return_date = actual_return_date
         borrowing.save()
-        # Increase inventory count by 1 when a book is returned
-        book = borrowing.book
-        book.inventory += 1
-        book.save()
 
-        serializer = BorrowingSerializer(borrowing)
-        return Response(serializer.data)
+        book = get_object_or_404(Book, id=borrowing.book_id)
+        with transaction.atomic():
+            book.inventory += 1
+            book.save()
+
+        send_return_borrowing_notification(sender=self.__class__, instance=borrowing)
+
+        serializer = BorrowingReturnSerializer(borrowing)
+        return Response(serializer.data, status=status.HTTP_200_OK)

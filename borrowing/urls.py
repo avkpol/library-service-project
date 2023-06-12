@@ -3,10 +3,10 @@ from rest_framework.routers import DefaultRouter
 from .views import BorrowingViewSet
 
 router = DefaultRouter()
-router.register(r'borrowings', BorrowingViewSet, basename='borrowing')
+router.register(r"borrowings", BorrowingViewSet, basename="borrowing")
 
 urlpatterns = [
-    path('', include(router.urls)),
+    path("", include(router.urls)),
 ]
 
 app_name = "borrowing"
