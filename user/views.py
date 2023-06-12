@@ -20,9 +20,16 @@ class CustomerViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         if self.action == 'create':
-            return [AllowAny()]
+            return []
         else:
             return [IsAuthenticated()]
+
+    @action(detail=False, methods=['post'])
+    def create_customer(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @action(detail=False, methods=['post'])
     def token(self, request):

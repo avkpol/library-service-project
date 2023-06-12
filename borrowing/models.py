@@ -10,6 +10,5 @@ class Borrowing(models.Model):
     book_id = models.PositiveIntegerField()
     user_id = models.PositiveIntegerField()
 
-
     def __str__(self):
         return f"Borrowing #{self.pk}"
