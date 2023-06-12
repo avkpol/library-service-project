@@ -89,26 +89,6 @@ change the default `Authorization` header for JWT authentication to for example 
 * Use `request.build_absolute_uri` & reverse
 * Provide request in context to serializer (only if needed)
 
-### Performed Optional tasks :
-1. Keep track of expired Stripe sessions
-* Add each-minute scheduled task for checking Stripe Session for expiration
-* If the session is expired - Payment should be also marked as EXPIRED (new status)
-* The user should be able to renew the Payment session (new endpoint)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ### HOW TO RUN
 
 - Create venv: `python -m venv venv`
