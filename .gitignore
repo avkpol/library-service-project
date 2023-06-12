@@ -3,9 +3,12 @@
 *.iml
 .env
 .DS_Store
+virtual/
+virtenv/
 venv/
 .pytest_cache/
 **__pycache__/
 *.pyc
 **db.sqlite3
 .flake8
+schema.yml
