@@ -1,11 +1,12 @@
 from django.db import models
 
+
 class Book(models.Model):
-    HARD = 'H'
-    SOFT = 'S'
+    HARD = "H"
+    SOFT = "S"
     COVER_CHOICES = [
-        (HARD, 'Hardcover'),
-        (SOFT, 'Softcover'),
+        (HARD, "Hardcover"),
+        (SOFT, "Softcover"),
     ]
 
     title = models.CharField(max_length=255)
@@ -16,4 +17,3 @@ class Book(models.Model):
 
     def __str__(self):
         return self.title
-
