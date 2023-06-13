@@ -27,6 +27,7 @@ class BookViewSetTestCase(TestCase):
         response = self.client.get(reverse("book:book-list"))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 2)
+
     def test_retrieve_book(self):
         book = Book.objects.create(
             title="Book 1", author="Author 1", cover="H", inventory=10, daily_fee="9.99"

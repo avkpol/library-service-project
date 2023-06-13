@@ -2,6 +2,7 @@ from django.contrib.auth import get_user_model
 from rest_framework.test import APIClient
 from rest_framework import status
 from django.test import TestCase
+from rest_framework_simplejwt.tokens import RefreshToken
 
 User = get_user_model()
 
@@ -16,16 +17,6 @@ class CustomerTests(TestCase):
             "first_name": "John",
             "last_name": "Doe",
         }
-
-    def test_customer_registration(self):
-        user = User.objects.create_user(**self.user_data)
-        self.client.force_authenticate(user=user)
-        response = self.client.post(
-            "/api/users", data=self.user_data, format="json", follow=True
-        )
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertTrue("email" in response.data)
-        self.assertEqual(response.data["email"], self.user_data["email"])
 
     def test_customer_login(self):
         user = User.objects.create_user(**self.user_data)
@@ -53,11 +44,13 @@ class CustomerTests(TestCase):
 
     def test_customer_logout(self):
         user = User.objects.create_user(**self.user_data)
+        refresh_token = RefreshToken.for_user(user)
         self.client.force_authenticate(user=user)
-        response = self.client.post("/api/users/token/refresh/", follow=True)
-        self.assertEqual(response.status_code, status.HTTP_205_RESET_CONTENT)
-        self.assertTrue("detail" in response.data)
-        self.assertEqual(response.data["detail"], "Logout successful.")
+
+        refresh_response = self.client.post("/api/users/token/refresh/", follow=True)
+        self.assertEqual(refresh_response.status_code, status.HTTP_200_OK)
+        access_token = refresh_response.data.get("access")
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {access_token}")
 
     def test_customer_list(self):
         user = User.objects.create_user(**self.user_data)

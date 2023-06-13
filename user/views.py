@@ -1,7 +1,12 @@
 from django.contrib.auth import authenticate, logout, get_user_model
+from rest_framework.authentication import TokenAuthentication
+from rest_framework.authtoken.models import Token
 
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.views import APIView
+from rest_framework_simplejwt.token_blacklist.models import OutstandingToken
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework import status, viewsets
@@ -41,6 +46,7 @@ class CustomerViewSet(viewsets.ModelViewSet):
         user = authenticate(request, username=email, password=password)
         if user is not None:
             refresh = RefreshToken.for_user(user)
+            refresh.save()
             return Response(
                 {
                     "refresh": str(refresh),
@@ -52,17 +58,20 @@ class CustomerViewSet(viewsets.ModelViewSet):
         )
 
     @action(detail=False, methods=["post"], url_path="token/refresh")
-    def refresh_token(self, request):
-        serializer = TokenSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        refresh = serializer.validated_data["refresh"]
+    def logout(self, request):
+        user_id = request.user.id
         try:
-            token = RefreshToken(refresh)
-            return Response({"access": str(token.access_token)})
+            refresh_token = OutstandingToken.objects.filter(user_id=user_id).values_list('token', flat=True).first()
+
+            if refresh_token:
+                token = RefreshToken(refresh_token)
+                token.blacklist()
+                return Response({"detail": "Successfully logged out"}, status=status.HTTP_200_OK)
+            else:
+                return Response({"error": "Refresh token not found for the user"}, status=status.HTTP_400_BAD_REQUEST)
         except Exception:
-            return Response(
-                {"error": "Invalid refresh token"}, status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": "Invalid refresh token"}, status=status.HTTP_400_BAD_REQUEST)
+
 
     @action(detail=False, methods=["get", "put", "patch", "delete"])
     def me(self, request):
@@ -125,3 +134,17 @@ class AuthViewSet(viewsets.ViewSet):
         serializer.is_valid(raise_exception=True)
         response = TokenRefreshView.as_view()(request._request)
         return Response(response.data)
+
+
+
+
+
+#
+# class LogOutView(APIView):
+#     authentication_classes = (TokenAuthentication,)
+#     permission_classes = (IsAuthenticated,)
+#
+#     def post(self, request):
+#         token = get_object_or_404(Token, user=request.user)
+#         token.delete()
+#         return Response({"detail": "Successfully log out"}, status=status.HTTP_200_OK)
