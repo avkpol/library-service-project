@@ -20,13 +20,11 @@ from library_service_project import settings
 from payments.models import Payment, PaymentStatus, PaymentType
 from payments.serializers import PaymentSerializer
 
-
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 webhook_secret = os.getenv("STRIPE_WEBHOOK_SECRET")
 
 REST_API_CHECKOUT_SUCCESS_URL = settings.CHECKOUT_SUCCESS_URL
 REST_API_CHECKOUT_CANCEL_URL = settings.CHECKOUT_CANCEL_URL
-
 
 
 class CreateCheckoutSession(APIView):
