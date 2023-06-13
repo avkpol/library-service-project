@@ -5,7 +5,7 @@ from payments.views import (
     PaymentListView,
     PaymentDetailView,
     CustomSuccessView,
-    WebHook,
+    WebHook
 )
 
 urlpatterns = [
@@ -27,6 +27,8 @@ urlpatterns = [
         name="payments-successful"
     ),
     path("webhook/", WebHook.as_view(), name="webhook"),
+
+
 ]
 
 app_name = "payments"

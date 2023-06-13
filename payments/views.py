@@ -4,6 +4,8 @@ import stripe
 
 from django.http import JsonResponse
 from django.shortcuts import redirect, reverse
+from django.utils.http import urlencode
+from rest_framework import status
 
 from rest_framework.exceptions import ValidationError
 from rest_framework.generics import (
@@ -46,7 +48,6 @@ class CreateCheckoutSession(APIView):
                 type=PaymentType.CARD,
             )
             unit_amount = int(Decimal(payment.to_pay) * 100)
-
             checkout_session = stripe.checkout.Session.create(
                 line_items=[
                     {
@@ -71,29 +72,36 @@ class CreateCheckoutSession(APIView):
             payment.session_url = checkout_session.url
             payment.session_id = checkout_session.id
             payment.save()
-            print("Payment object saved successfully.")
-            payments_successful_url = reverse("payments:payments-successful")
-            return redirect(payments_successful_url, code=303)
-            # return redirect(checkout_session.url, code=303)
+
+            payment_data = {
+                "total": f'{price} USD',
+                "session_id": payment.session_id,
+                "session_url": payment.session_url,
+            }
+
+            payment_params = urlencode(payment_data)
+            success_url = reverse("payments:payments-successful")
+            success_url = f"{success_url}?{payment_params}"
+
+            return redirect(success_url)
         except ValidationError as e:
             return Response({"error": str(e)}, status=400)
 
 
-
 class CustomSuccessView(APIView):
     def get(self, request):
+        total = request.query_params.get("total")
+        session_url = request.query_params.get("session_url")
         session_id = request.query_params.get("session_id")
-        print("Session ID:", session_id)
-        try:
-            payment = Payment.objects.get(session_id=session_id)
-
+        if total is not None and session_url is not None:
             payment_info = {
-                "amount_paid": payment.to_pay,
-                "payment_method": payment.type,
+                "total": total,
+                "session_id": session_id,
+                "session_url": session_url,
             }
-            return Response(payment_info)
-        except Payment.DoesNotExist:
-            return Response({"error": "Payment not found."}, status=400)
+            return Response(payment_info, status=200)
+        else:
+            return Response({"error": "Payment data not provided."}, status=400)
 
 
 class PaymentListView(APIView):

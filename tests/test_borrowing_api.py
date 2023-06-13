@@ -1,23 +1,34 @@
+from django.urls import reverse
+
+from user.models import Customer
 from user.views import User
 
 from datetime import datetime, timedelta
 from rest_framework import status
-from rest_framework.test import APITestCase
+from rest_framework.test import APITestCase, APIClient
 from rest_framework.authtoken.models import Token
-from borrowing.models import Borrowing, Book
+from borrowing.models import Borrowing
+from book.models import Book
 
 
 class BorrowingViewSetTestCase(APITestCase):
     def setUp(self):
-        self.user = User.objects.create_user(
-            email="test@example.com",
-            username="testuser",
-            password="testpassword",
-            first_name="John",
-            last_name="Doe",
+        # self.user = User.objects.create_user(
+        #     email="test@example.com",
+        #     username="testuser",
+        #     password="testpassword",
+        #     first_name="John",
+        #     last_name="Doe",
+        # )
+        # self.token = Token.objects.create(user=self.user)
+        # self.client.credentials(HTTP_AUTHORIZATION=f"Token {self.token.key}")
+        self.client = APIClient()
+        self.user = Customer.objects.create_user(
+            email="testuser", username="testuser", password="testpassword"
         )
-        self.token = Token.objects.create(user=self.user)
-        self.client.credentials(HTTP_AUTHORIZATION=f"Token {self.token.key}")
+        self.client.force_authenticate(user=self.user)
+
+
 
     def test_create_borrowing(self):
         book = Book.objects.create(title="Test Book", inventory=5, daily_fee=10.0)
@@ -27,11 +38,12 @@ class BorrowingViewSetTestCase(APITestCase):
             "book_id": book.id,
             "user_id": self.user.id,
         }
-        response = self.client.post(
-            "api/borrowings/",
-            borrowing_data,
-            follow=True,
-        )
+        # response = self.client.post(
+        #     "api/borrowings/",
+        #     borrowing_data,
+        #     follow=True,
+        # )
+        response = self.client.post(reverse("borrowing:borrowing-list"), borrowing_data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(Borrowing.objects.count(), 1)
         borrowing = Borrowing.objects.first()
