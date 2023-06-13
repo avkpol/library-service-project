@@ -1,8 +1,6 @@
-import datetime
-
-from rest_framework import viewsets, exceptions, status
+from rest_framework import viewsets, status
 from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from borrowing.models import Borrowing
@@ -20,14 +18,6 @@ class BorrowingViewSet(viewsets.ModelViewSet):
         if self.action == "return_book":
             return BorrowingReturnSerializer
         return BorrowingSerializer
-
-    def get_permissions(self):
-        if self.action == "filter_by_user":
-            permission_classes = [IsAuthenticated]
-        else:
-            permission_classes = [IsAdminUser]
-
-        return [permission() for permission in permission_classes]
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -57,17 +47,8 @@ class BorrowingViewSet(viewsets.ModelViewSet):
     def return_book(self, request, pk=None):
         borrowing = self.get_object()
 
-        if borrowing.actual_return_date is not None:
-            raise exceptions.ValidationError(
-                "This borrowing has already been returned."
-            )
+        serializer = BorrowingReturnSerializer(borrowing, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
 
-        actual_return_date = request.data.get("actual_return_date")
-        if not actual_return_date:
-            raise exceptions.ValidationError("Please provide the actual return date.")
-
-        borrowing.actual_return_date = datetime.datetime.now().date()
-        borrowing.save()
-
-        serializer = BorrowingReturnSerializer(borrowing)
         return Response(serializer.data, status=status.HTTP_200_OK)
