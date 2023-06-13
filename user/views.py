@@ -1,14 +1,15 @@
-from django.contrib.auth import authenticate, logout, get_user_model
-from rest_framework.authentication import TokenAuthentication
-from rest_framework.authtoken.models import Token
-
+from django.contrib.auth import (
+    authenticate, logout, get_user_model
+)
 from rest_framework.exceptions import PermissionDenied
-from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.views import APIView
-from rest_framework_simplejwt.token_blacklist.models import OutstandingToken
+from rest_framework_simplejwt.token_blacklist.models import (
+    OutstandingToken
+)
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from rest_framework_simplejwt.views import (
+    TokenObtainPairView, TokenRefreshView
+)
 from rest_framework import status, viewsets
 from rest_framework.response import Response
 from rest_framework.decorators import action
@@ -17,7 +18,11 @@ from user.serializers import (
     LoginSerializer,
     LogoutSerializer,
 )
-from user.serializers import CustomerSerializer, TokenSerializer, ProfileSerializer
+from user.serializers import (
+    CustomerSerializer,
+    TokenSerializer,
+    ProfileSerializer
+)
 
 
 class CustomerViewSet(viewsets.ModelViewSet):
@@ -134,17 +139,3 @@ class AuthViewSet(viewsets.ViewSet):
         serializer.is_valid(raise_exception=True)
         response = TokenRefreshView.as_view()(request._request)
         return Response(response.data)
-
-
-
-
-
-#
-# class LogOutView(APIView):
-#     authentication_classes = (TokenAuthentication,)
-#     permission_classes = (IsAuthenticated,)
-#
-#     def post(self, request):
-#         token = get_object_or_404(Token, user=request.user)
-#         token.delete()
-#         return Response({"detail": "Successfully log out"}, status=status.HTTP_200_OK)
