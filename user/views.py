@@ -59,29 +59,43 @@ class CustomerViewSet(viewsets.ModelViewSet):
                 }
             )
         return Response(
-            {"error": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED
+            {"error": "Invalid credentials"},
+            status=status.HTTP_401_UNAUTHORIZED
         )
 
     @action(detail=False, methods=["post"], url_path="token/refresh")
     def logout(self, request):
         user_id = request.user.id
         try:
-            refresh_token = OutstandingToken.objects.filter(user_id=user_id).values_list('token', flat=True).first()
+            refresh_token = OutstandingToken.objects.filter(
+                user_id=user_id).values_list('token', flat=True
+            ).first()
 
             if refresh_token:
                 token = RefreshToken(refresh_token)
                 token.blacklist()
-                return Response({"detail": "Successfully logged out"}, status=status.HTTP_200_OK)
+                return Response(
+                    {"detail": "Successfully logged out"},
+                    status=status.HTTP_200_OK
+                )
             else:
-                return Response({"error": "Refresh token not found for the user"}, status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    {"error": "Refresh token not found for the user"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
         except Exception:
-            return Response({"error": "Invalid refresh token"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "Invalid refresh token"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
 
     @action(detail=False, methods=["get", "put", "patch", "delete"])
     def me(self, request):
         if not request.user.is_authenticated:
-            raise PermissionDenied("Authentication credentials were not provided.")
+            raise PermissionDenied(
+                "Authentication credentials were not provided."
+            )
 
         if request.method == "GET":
             serializer = ProfileSerializer(request.user)
