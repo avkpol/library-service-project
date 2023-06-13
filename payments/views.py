@@ -73,22 +73,23 @@ class CreateCheckoutSession(APIView):
             payment.session_id = checkout_session.id
             payment.save()
 
-            payment_data = {
-                "total": f'{price} USD',
-                "session_id": payment.session_id,
-                "session_url": payment.session_url,
-            }
-
-            payment_params = urlencode(payment_data)
+            payment_params = urlencode(
+                {
+                    "total": f'{price} USD',
+                    "session_id": payment.session_id,
+                    "session_url": payment.session_url,
+                }
+            )
             success_url = reverse("payments:payments-successful")
             success_url = f"{success_url}?{payment_params}"
-
             return redirect(success_url)
+
         except ValidationError as e:
+            reverse("payments:payments-cancel")
             return Response({"error": str(e)}, status=400)
 
 
-class CustomSuccessView(APIView):
+class PaymentSuccessView(APIView):
     def get(self, request):
         total = request.query_params.get("total")
         session_url = request.query_params.get("session_url")
@@ -136,7 +137,6 @@ class WebHook(APIView):
         except stripe.error.SignatureVerificationError as err:
             # Invalid signature
             raise err
-
         # Handle the event
         if event.type == "payment_intent.succeeded":
             payment_intent = event.data.object

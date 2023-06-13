@@ -4,8 +4,9 @@ from payments.views import (
     CreateCheckoutSession,
     PaymentListView,
     PaymentDetailView,
-    CustomSuccessView,
-    WebHook
+    PaymentSuccessView,
+    WebHook,
+
 )
 
 urlpatterns = [
@@ -23,12 +24,11 @@ urlpatterns = [
         name="payment-detail"
     ),
     path(
-        "payments/success/", CustomSuccessView.as_view(),
+        "payments/success/", PaymentSuccessView.as_view(),
         name="payments-successful"
     ),
+
     path("webhook/", WebHook.as_view(), name="webhook"),
-
-
 ]
 
 app_name = "payments"

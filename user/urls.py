@@ -10,7 +10,10 @@ router.register("users", CustomerViewSet, basename="user")
 
 urlpatterns = [
     path("", include(router.urls)),
-    path("users/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
+
+    # path("users/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
+    path('token/refresh/', CustomerViewSet.as_view({'post': 'logout'}), name='token-refresh'),
+    # path('users/token/refresh/', LogOutView.as_view(), name='token-refresh'),
 
 ]
 
